@@ -2,10 +2,9 @@ package tree;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Stack;
+import estrut.Tree;
 
-public class BinarySearchTree {
-
+public class BinarySearchTree implements Tree {
     class Node {
         int key;
         Node left, right;
@@ -18,174 +17,135 @@ public class BinarySearchTree {
 
     Node root;
 
+    // Construtor público
     public BinarySearchTree() {
         root = null;
     }
 
+    @Override
     public boolean buscaElemento(int valor) {
-        Node current = root;
-        while (current != null) {
-            if (valor == current.key) {
-                return true;
-            } else if (valor < current.key) {
-                current = current.left;
-            } else {
-                current = current.right;
-            }
-        }
-        return false;
+        return buscaElementoRec(root, valor);
     }
 
+    private boolean buscaElementoRec(Node root, int valor) {
+        if (root == null) {
+            return false;
+        }
+        if (valor == root.key) {
+            return true;
+        }
+        return valor < root.key ? buscaElementoRec(root.left, valor) : buscaElementoRec(root.right, valor);
+    }
+
+    @Override
     public int minimo() {
         if (root == null) {
             throw new IllegalStateException("Árvore está vazia");
         }
-        Node current = root;
-        while (current.left != null) {
-            current = current.left;
-        }
-        return current.key;
+        return minimoRec(root);
     }
 
+    private int minimoRec(Node root) {
+        return root.left == null ? root.key : minimoRec(root.left);
+    }
+
+    @Override
     public int maximo() {
         if (root == null) {
             throw new IllegalStateException("Árvore está vazia");
         }
-        Node current = root;
-        while (current.right != null) {
-            current = current.right;
-        }
-        return current.key;
+        return maximoRec(root);
     }
 
+    private int maximoRec(Node root) {
+        return root.right == null ? root.key : maximoRec(root.right);
+    }
+
+    @Override
     public void insereElemento(int valor) {
+        root = insereElementoRec(root, valor);
+    }
+
+    private Node insereElementoRec(Node root, int valor) {
         if (root == null) {
             root = new Node(valor);
-            return;
+            return root;
         }
-        Node current = root;
-        while (true) {
-            if (valor < current.key) {
-                if (current.left == null) {
-                    current.left = new Node(valor);
-                    return;
-                }
-                current = current.left;
-            } else if (valor > current.key) {
-                if (current.right == null) {
-                    current.right = new Node(valor);
-                    return;
-                }
-                current = current.right;
-            } else {
-                // Se o valor já existe, não faz nada
-                return;
-            }
+        if (valor < root.key) {
+            root.left = insereElementoRec(root.left, valor);
+        } else if (valor > root.key) {
+            root.right = insereElementoRec(root.right, valor);
         }
+        return root;
     }
 
+    @Override
     public void remove(int valor) {
-        Node parent = null;
-        Node current = root;
-        while (current != null && current.key != valor) {
-            parent = current;
-            if (valor < current.key) {
-                current = current.left;
-            } else {
-                current = current.right;
-            }
+        root = removeRec(root, valor);
+    }
+
+    private Node removeRec(Node root, int valor) {
+        if (root == null) {
+            return root;
         }
-        if (current == null) {
-            // O valor não está presente na árvore
-            return;
-        }
-        if (current.left == null) {
-            if (parent == null) {
-                root = current.right;
-            } else if (current == parent.left) {
-                parent.left = current.right;
-            } else {
-                parent.right = current.right;
-            }
-        } else if (current.right == null) {
-            if (parent == null) {
-                root = current.left;
-            } else if (current == parent.left) {
-                parent.left = current.left;
-            } else {
-                parent.right = current.left;
-            }
+        if (valor < root.key) {
+            root.left = removeRec(root.left, valor);
+        } else if (valor > root.key) {
+            root.right = removeRec(root.right, valor);
         } else {
-            Node sucessor = getMinimoNode(current.right);
-            int temp = sucessor.key;
-            remove(sucessor.key);
-            current.key = temp;
+            if (root.left == null) {
+                return root.right;
+            } else if (root.right == null) {
+                return root.left;
+            }
+            root.key = minimoRec(root.right);
+            root.right = removeRec(root.right, root.key);
+        }
+        return root;
+    }
+
+    private void preOrdemRec(Node root, List<Integer> result) {
+        if (root != null) {
+            result.add(root.key);
+            preOrdemRec(root.left, result);
+            preOrdemRec(root.right, result);
         }
     }
 
-    private Node getMinimoNode(Node node) {
-        Node current = node;
-        while (current.left != null) {
-            current = current.left;
-        }
-        return current;
-    }
-
+    @Override
     public int[] preOrdem() {
         List<Integer> result = new ArrayList<>();
-        Stack<Node> stack = new Stack<>();
-        if (root != null) {
-            stack.push(root);
-            while (!stack.isEmpty()) {
-                Node node = stack.pop();
-                result.add(node.key);
-                if (node.right != null) {
-                    stack.push(node.right);
-                }
-                if (node.left != null) {
-                    stack.push(node.left);
-                }
-            }
-        }
+        preOrdemRec(root, result);
         return result.stream().mapToInt(Integer::intValue).toArray();
     }
 
+    private void emOrdemRec(Node root, List<Integer> result) {
+        if (root != null) {
+            emOrdemRec(root.left, result);
+            result.add(root.key);
+            emOrdemRec(root.right, result);
+        }
+    }
+
+    @Override
     public int[] emOrdem() {
         List<Integer> result = new ArrayList<>();
-        Stack<Node> stack = new Stack<>();
-        Node current = root;
-        while (current != null || !stack.isEmpty()) {
-            while (current != null) {
-                stack.push(current);
-                current = current.left;
-            }
-            current = stack.pop();
-            result.add(current.key);
-            current = current.right;
-        }
+        emOrdemRec(root, result);
         return result.stream().mapToInt(Integer::intValue).toArray();
     }
 
+    private void posOrdemRec(Node root, List<Integer> result) {
+        if (root != null) {
+            posOrdemRec(root.left, result);
+            posOrdemRec(root.right, result);
+            result.add(root.key);
+        }
+    }
+
+    @Override
     public int[] posOrdem() {
         List<Integer> result = new ArrayList<>();
-        Stack<Node> stack1 = new Stack<>();
-        Stack<Node> stack2 = new Stack<>();
-        if (root != null) {
-            stack1.push(root);
-            while (!stack1.isEmpty()) {
-                Node node = stack1.pop();
-                stack2.push(node);
-                if (node.left != null) {
-                    stack1.push(node.left);
-                }
-                if (node.right != null) {
-                    stack1.push(node.right);
-                }
-            }
-            while (!stack2.isEmpty()) {
-                result.add(stack2.pop().key);
-            }
-        }
+        posOrdemRec(root, result);
         return result.stream().mapToInt(Integer::intValue).toArray();
     }
 }
